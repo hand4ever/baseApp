@@ -35,12 +35,46 @@ try {
     include APP_PATH . '/config/loader.php';
     include APP_PATH . '/common/common.php';
 
-    /**
-     * Handle the request
-     */
-    $application = new \Phalcon\Mvc\Application($di);
+    // 获取 'router' 服务
+    $router = $di['router'];
 
-    echo str_replace(["\n","\r","\t"], '', $application->handle()->getContent());
+    $router->handle();
+
+    $view = $di['view'];
+
+    $dispatcher = $di['dispatcher'];
+
+    // 传递路由的相关数据传递给调度器
+    $dispatcher->setControllerName($router->getControllerName());
+    $dispatcher->setActionName($router->getActionName());
+    $dispatcher->setParams($router->getParams());
+
+    // 启动视图
+    $view->start();
+
+    // 请求调度
+    $dispatcher->dispatch();
+
+    // 渲染相关视图
+    $view->render(
+        $dispatcher->getControllerName(),
+        $dispatcher->getActionName(),
+        $dispatcher->getParams()
+    );
+
+    // 完成视图
+    $view->finish();
+
+    $response = $di['response'];
+
+    // 传递视图内容给响应对象
+    $response->setContent($view->getContent());
+
+    // 发送头信息
+    $response->sendHeaders();
+
+    // 输出响应内容
+    echo $response->getContent();
 
 } catch (\Exception $e) {
     echo $e->getMessage() . '<br>';
